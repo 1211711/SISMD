@@ -2,25 +2,29 @@
 
 -import(router_monitor,[start_monitor/2]).
 -import(helper,[get_process_alias/1]).
+-import(database,[start/0, add_server/1, remove_server/1, get_servers/0]).
 
 -export([start/2, startWithMonitor/2]).
 
-start(Router, Monitor) ->
+defaultStart(Router, MonitorName) ->
     compile:file(helper),  
-    Pid = spawn(fun() -> init(Monitor) end),
+    Pid = spawn(fun() -> init(MonitorName) end),
     register(Router, Pid),
-    startMonitor(Pid, Monitor).
+    Pid.
+
+start(Router, MonitorName) ->
+    Pid = defaultStart(Router, MonitorName),
+    startMonitor(Pid, MonitorName).
+
+startWithMonitor(Router, Monitor) ->
+    Pid = defaultStart(Router, get_process_alias(Monitor)),
+    io:format("ROUTER::~p@~p:: Spawning router with monitor ~p.~n", [Router, Pid, get_process_alias(Monitor)]),
+    Router ! {monitor, Monitor},
+    Pid.
 
 init(MonitorName) ->
     process_flag(trap_exit, true),
     loop([], MonitorName).
-
-startWithMonitor(Router, Monitor) ->
-    Pid = spawn(fun() -> init(get_process_alias(Monitor)) end),
-    register(Router, Pid),
-    io:format("ROUTER::~p@~p:: Spawning router with monitor ~p.~n", [Router, Pid, get_process_alias(Monitor)]),
-    Router ! {monitor, Monitor},
-    Pid.
 
 startMonitor(Router, MonitorName) ->  
     compile:file(router_monitor),  
