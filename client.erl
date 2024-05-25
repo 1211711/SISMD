@@ -16,7 +16,7 @@ send_message(Client, ServerName, Router, Remote, Message) -> Client ! {send, Ser
  
 loop() ->
     receive
-        % Send messages to the router (not done in router yet) - need to add server
+        % Send messages to the router - WORKING ✅
         {send, ServerName, Router, Remote, Message} ->
             io:format("Client sending message: ~p to ~p/~p~n", [Message, Router, Remote]),
             {Router, Remote} ! {ServerName, self(), Message},
