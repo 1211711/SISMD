@@ -11,4 +11,6 @@ remove_server(Server) ->
     ets:delete(process_registry, Server).
 
 get_servers() ->
-    ets:tab2list(database).
+    Servers = ets:tab2list(database),
+    io:format("Database:: Retrieving servers: ~p~n", [Servers]),
+    Servers.

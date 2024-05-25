@@ -6,25 +6,26 @@
 
 -export([start/2, startWithMonitor/2]).
 
-defaultStart(Router, MonitorName) ->
-    compile:file(helper),  
-    Pid = spawn(fun() -> init(MonitorName) end),
+defaultStart(Router, MonitorName, Servers) ->
+    compile:file(helper),
+    Pid = spawn(fun() -> init(Servers, MonitorName) end),
     register(Router, Pid),
     Pid.
 
 start(Router, MonitorName) ->
-    Pid = defaultStart(Router, MonitorName),
+    Pid = defaultStart(Router, MonitorName, []), 
+    database:start(),
     startMonitor(Pid, MonitorName).
 
 startWithMonitor(Router, Monitor) ->
-    Pid = defaultStart(Router, get_process_alias(Monitor)),
+    Pid = defaultStart(Router, get_process_alias(Monitor), database:get_servers()),
     io:format("ROUTER::~p@~p:: Spawning router with monitor ~p.~n", [Router, Pid, get_process_alias(Monitor)]),
     Router ! {monitor, Monitor},
     Pid.
 
-init(MonitorName) ->
+init(Servers, MonitorName) ->
     process_flag(trap_exit, true),
-    loop([], MonitorName).
+    loop(Servers, MonitorName).
 
 startMonitor(Router, MonitorName) ->  
     compile:file(router_monitor),  
@@ -71,6 +72,7 @@ loop(Servers, MonitorName) ->
 add_server(ServerName, Server) ->
     io:format("ROUTER::~p@~p:: Trying to add server ~p@~p~n", [get_process_alias(self()), self(), ServerName, Server]),
     Server ! {connected, self()},
+    database:add_server({ServerName, Server}),
     io:format("ROUTER::~p@~p:: Server ~p@~p added!~n", [get_process_alias(self()), self(), ServerName, Server]).
 
 request_to_monitor(Monitor) ->
