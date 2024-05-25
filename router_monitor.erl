@@ -18,15 +18,10 @@ loop(Router, RouterName) ->
             link(Router),
             loop(Router, RouterName);
         % Restart Router when it goes down
-        {'up', _, process, Router, Reason} ->
-            io:format("[ROUTER MONITOR] Router ~p is down due to: ~p~n", [Router, Reason]),
-            %startWithMonitor(Router),  
-            io:format("[ROUTER MONITOR] Between start and loop"),
-            loop(Router, RouterName);
-        % Restart Router when it goes down
         {'EXIT', Router, Reason} ->
             io:format("[EXIT] Router ~p is down due to: ~p~n", [Router, Reason]),
             startWithMonitor(RouterName, self()),  
+            io:format("[EXIT] Router ~p is down due to: ~p~n", [Router, Reason]),
             loop(Router, RouterName);
         % Stop the router
         stop ->

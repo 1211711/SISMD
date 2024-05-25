@@ -14,10 +14,10 @@ start(Router, Monitor) ->
     register(Router, Pid).
 
 startWithMonitor(Router, Monitor) ->
-    io:format("[ROUTER] Spawning router.~n"),
     Pid = spawn(fun() -> loop([]) end),
-    register(Router, Pid),
-    Router ! {monitor, Monitor}.
+    io:format("[ROUTER] Spawning router ~p.~n", [Pid]),
+    Monitor ! {monitor, self()},
+    register(Router, Pid).
 
 startMonitor(Router, RouterName, Monitor) ->  
     compile:file(router_monitor),  
