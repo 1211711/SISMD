@@ -8,7 +8,7 @@ add_server(Server) ->
     ets:insert(database, Server).
 
 remove_server(Server) ->
-    ets:delete(process_registry, Server).
+    ets:delete(database, Server).
 
 get_servers() ->
     Servers = ets:tab2list(database),
