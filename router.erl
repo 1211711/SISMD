@@ -36,7 +36,7 @@ loop(Servers, MonitorName) ->
             From ! {servers, Servers},
             loop(Servers, MonitorName);
         % Add server to the routing - WORKING ✅
-        {ServerName, Server, add_server} ->
+        {add_server, ServerName, Server} ->
             add_server(ServerName, Server),
             loop([{ServerName, Server} | Servers], MonitorName);
         % Connect client to server - WORKING ✅
@@ -64,9 +64,10 @@ loop(Servers, MonitorName) ->
             loop(Servers, get_process_alias(NewMonitor))
     end.
 
-add_server(Server, ServerName) ->
+add_server(ServerName, Server) ->
+    io:format("ROUTER::~p@~p:: Trying to add server ~p@~p~n", [get_process_alias(self()), self(), ServerName, Server]),
     Server ! {connected, self()},
-    io:format("ROUTER::~p@~p:: Adding server: ~p@~p~n", [get_process_alias(self()), self(), ServerName, Server]).
+    io:format("ROUTER::~p@~p:: Server ~p@~p added!~n", [get_process_alias(self()), self(), ServerName, Server]).
 
 request_to_monitor(Monitor) ->
     io:format("ROUTER::~p@~p:: Request to be monitored by ~p~n", [get_process_alias(self()), self(), Monitor]),

@@ -1,4 +1,7 @@
 -module(server).
+
+-import(helper,[get_process_alias/1]).
+
 -export([start/1, connectToRouter/4]).
  
 start(Server) ->
@@ -13,7 +16,8 @@ loop(Clients) ->
         % Connect to router - WORKING ✅
         {connect_to_router, Name, Router, Remote} ->
             net_adm:ping(Remote),
-            {Router, Remote} ! {Name, self(), add_server},
+            io:format("Server::~p@~p:: Trying to connect to ~p~n", [get_process_alias(self()), self(), Router]),
+            {Router, Remote} ! {add_server, Name, self()},
             loop(Clients);
         % Receive sucess message from the router connection - WORKING ✅
         {connected, Router} ->
