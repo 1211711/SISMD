@@ -3,64 +3,78 @@
 
 -module(router).
 
--import(router_monitor,[start_monitor/3]).
+-import(router_monitor,[start_monitor/2]).
+-import(helper,[get_process_alias/1]).
 
 -export([start/2, startWithMonitor/2]).
 
 start(Router, Monitor) ->
-    Pid = spawn(fun() -> init() end),
+    compile:file(helper),  
+    Pid = spawn(fun() -> init(Router, Monitor) end),
     register(Router, Pid),
-    startMonitor(Pid, Router, Monitor).
+    startMonitor(Pid, Monitor).
 
-init() ->
+init(RouterName, MonitorName) ->
     process_flag(trap_exit, true),
-    loop([]).
+    loop([], RouterName, MonitorName).
 
 startWithMonitor(Router, Monitor) ->
-    Pid = spawn(fun() -> init() end),
+    Pid = spawn(fun() -> init(Router, get_process_alias(Monitor)) end),
     register(Router, Pid),
-    io:format("[ROUTER] Spawning router ~p.~n", [Pid]),
+    io:format("ROUTER::~p@~p:: Spawning router with monitor ~p.~n", [Router, Pid, get_process_alias(Monitor)]),
     Router ! {monitor, Monitor},
     Pid.
 
-startMonitor(Router, RouterName, Monitor) ->  
+startMonitor(Router, MonitorName) ->  
     compile:file(router_monitor),  
-    MonitorPid = start_monitor(Router, RouterName, Monitor),
-    io:format("Monitor started: ~p~n", [Monitor]),
-    Router ! {monitor, MonitorPid}.
+    io:format("ROUTER:~p@~p:: Monitor starting: ~p~n", [get_process_alias(Router), Router, MonitorName]),
+    MonitorPid = start_monitor(Router, MonitorName),
+    Router ! {monitor, MonitorPid},
+    MonitorPid.
 
-loop(Servers) ->
+loop(Servers, RouterName, MonitorName) ->
     receive
         % Return all servers when requested - WORKING ✅
         {From, servers} ->
             From ! {servers, Servers},
-            loop(Servers);
+            loop(Servers, RouterName, MonitorName);
         % Add server to the routing - WORKING ✅
-        {Name, Server, add_server} ->
-            Server ! {connected, self()},
-            io:format("Router adding server: ~p@~p~n", [Name,Server]),
-            loop([{Name, Server} | Servers]);
+        {ServerName, Server, add_server} ->
+            add_server(Server, ServerName, Server),
+            loop([{ServerName, Server} | Servers], RouterName, MonitorName);
         % Connect client to server - WORKING ✅
         {connect, Client, ServerName} ->
             Server = lists:keyfind(ServerName, 1, Servers),
             io:format("Router connecting client ~p to server ~p~n", [Client, ServerName]),
             ServerId = element(2, Server),
             ServerId ! {connect, Client},
-            loop(Servers);
+            loop(Servers, RouterName, MonitorName);
         % Clients sends message to server - WORKING ✅
-        {ServerName, Client, Message} ->
+        {deprecate, ServerName, Client, Message} ->
             Server = lists:keyfind(ServerName, 1, Servers),
             io:format("Client ~p sending message: ~p to ~p~n", [Client, Message, Server]),
             ServerId = element(2, Server),
             ServerId ! {Client, Message},
-            loop(Servers);
+            loop(Servers, RouterName, MonitorName);
         % Monitor messages
         {monitor, Monitor} ->
-            io:format("[ROUTER] Request to monitor...~n"),
-            Monitor ! {monitor, self()},
-            loop(Servers)
+            request_to_monitor(Monitor),
+            loop(Servers, RouterName, MonitorName);
+        % Restart Router Monitor when it goes down
+        {'EXIT', Monitor, Reason} ->
+            io:format("ROUTER::~p@~p::EXIT:: Router ~p is down due to: ~p~n", [get_process_alias(self()), self(), Monitor, Reason]),
+            NewMonitor = startMonitor(self(), MonitorName),  
+            loop(Servers, RouterName, get_process_alias(NewMonitor))
     end.
 
+add_server(RouterName, Server, ServerName) ->
+    Server ! {connected, self()},
+    io:format("ROUTER::~p:: Adding server: ~p@~p~n", [RouterName, ServerName, Server]).
+
+request_to_monitor(Monitor) ->
+    io:format("ROUTER::~p@~p:: Request to be monitored by ~p~n", [get_process_alias(self()), self(), Monitor]),
+    Monitor ! {monitor, self()},
+    io:format("ROUTER::~p@~p:: Monitor started on ~p~n", [get_process_alias(self()), self(), get_process_alias(Monitor)]).
 
 % TODO:
 % - When a server goes down remove from list
