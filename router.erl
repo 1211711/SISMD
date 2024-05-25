@@ -8,16 +8,20 @@
 -export([start/2, startWithMonitor/2]).
 
 start(Router, Monitor) ->
-    Pid = spawn(fun() -> loop([]) end),
-    startMonitor(Pid, Router, Monitor),
+    Pid = spawn(fun() -> init() end),
+    register(Router, Pid),
+    startMonitor(Pid, Router, Monitor).
+
+init() ->
     process_flag(trap_exit, true),
-    register(Router, Pid).
+    loop([]).
 
 startWithMonitor(Router, Monitor) ->
-    Pid = spawn(fun() -> loop([]) end),
+    Pid = spawn(fun() -> init() end),
+    register(Router, Pid),
     io:format("[ROUTER] Spawning router ~p.~n", [Pid]),
-    Monitor ! {monitor, self()},
-    register(Router, Pid).
+    Router ! {monitor, Monitor},
+    Pid.
 
 startMonitor(Router, RouterName, Monitor) ->  
     compile:file(router_monitor),  
@@ -54,10 +58,7 @@ loop(Servers) ->
         {monitor, Monitor} ->
             io:format("[ROUTER] Request to monitor...~n"),
             Monitor ! {monitor, self()},
-            loop(Servers);
-        % Stop the router
-        stop ->
-            io:format("Router stopping~n")
+            loop(Servers)
     end.
 
 
