@@ -131,5 +131,4 @@ request_to_monitor(Monitor) ->
     Monitor ! {monitor, self()},
     io:format("SERVER::~p@~p:: Monitor started on ~p~n", [get_process_alias(self()), self(), get_process_alias(Monitor)]).
 
-% - Validate if client is connected to the server
 % - Feedback to client when connecting

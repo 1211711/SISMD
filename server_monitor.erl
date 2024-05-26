@@ -15,6 +15,7 @@ startMonitor(Server, MonitorName, FullRouter) ->
     Pid = spawn(fun() -> init(Server, FullRouter) end),
     io:format("SERVER MONITOR::~p@~p:: Monitor requested for ~p@~p~n", [MonitorName, Pid, get_process_alias(Server), Server]),
     register(MonitorName, Pid),
+    io:format("CHEGOU"),
     Pid.
 
 init(Server) ->
@@ -75,8 +76,8 @@ loop(Server, ServerName) ->
             loop(Server, get_process_alias(Server), {Router, Remote})
     end.
 
-% - Server going down without being connected to router gives error due to FullRouter ! {refreshServer, get_process_alias(NewServer), DownServer, NewServer}, (FULLROUTER IS NULL)
 % - Support router connected response (just like server).
 % - Case: connect to router, restart router, connect again -> fail
-% - Add full router when restarting from router 
-% - Need to do the refreshServer differently
+
+
+% Server down -> Monitor down -> Error⚠️
