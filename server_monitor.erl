@@ -14,29 +14,38 @@ startMonitor(Server, MonitorName) ->
 init(Server) ->
     compile:file(helper),
     process_flag(trap_exit, true),
-    loop(Server).
+    loop(Server, get_process_alias(Server), "").
 
-loop(Server) ->
+loop(Server, ServerName, FullRouter) ->
     receive
         % Start Router monitoring
         {monitor, Server} ->
             io:format("SERVER MONITOR::~p@~p:: Server ~p@~p being monitored.~n", [get_process_alias(self()), self(), get_process_alias(Server), Server]),
             link(Server),
-            loop(Server, get_process_alias(Server), "")
-    end.
-
-loop(Server, ServerName, FullRouter) ->
-    receive
+            loop(Server, get_process_alias(Server), "");
+        % Start Full Router monitoring
+        {monitor, Server, ThisFullRouter} ->
+            io:format("SERVER MONITOR::~p@~p:: Server ~p@~p being monitored.~n", [get_process_alias(self()), self(), get_process_alias(Server), Server]),
+            link(Server),
+            ThisFullRouter ! {add_server_monitor, get_process_alias(Server), self()},
+            loop(Server, get_process_alias(Server), ThisFullRouter);
         % Restart Router when it goes down
-        {'EXIT', Server, Reason} ->
-            io:format("SERVER MONITOR::~p@~p::EXIT:: Server ~p@~p is down due to: ~p~n", [get_process_alias(self()), self(), ServerName, Server, Reason]),
+        {'EXIT', DownServer, Reason} ->
+            io:format("SERVER MONITOR::~p@~p::EXIT:: Server ~p@~p is down due to: ~p~n", [get_process_alias(self()), self(), ServerName, DownServer, Reason]),
             NewServer = start_server(ServerName),
-            FullRouter ! {refreshServer, get_process_alias(NewServer), Server, NewServer},
-            loop(NewServer);
+            FullRouter ! {refreshServer, get_process_alias(NewServer), DownServer, NewServer},
+            loop(NewServer, ServerName, FullRouter);
         % Add Router
-        {Router, Remote} ->
-            io:format("SERVER MONITOR::~p@~p:: Router added ~p@~p", [get_process_alias(self()), self(), Router, Remote]),
-            loop(Server, ServerName, {Router, Remote})
+        {add_router, Router, Remote} ->
+            io:format("SERVER MONITOR::~p@~p:: Adding router ~p@~p.~n", [get_process_alias(self()), self(), Router, Remote]),
+            {Router, Remote} ! {add_server_monitor, get_process_alias(Server), self()},
+            io:format("SERVER MONITOR::~p@~p:: Router added ~p@~p.~n", [get_process_alias(self()), self(), Router, Remote]),
+            loop(Server, get_process_alias(Server), {Router, Remote})
     end.
 
 start_server(ServerName) -> startWithMonitor(ServerName, self()).
+
+% - Server going down without being connected to router gives error due to FullRouter ! {refreshServer, get_process_alias(NewServer), DownServer, NewServer}, (FULLROUTER IS NULL)
+% - Support router connected response (just like server).
+% - Case: connect to router, restart router, connect again -> fail
+% - Add full router when restarting from router 
