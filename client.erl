@@ -2,7 +2,7 @@
 
 -import(helper,[get_process_alias/1]).
  
--export([start/1, add_remote/1, get_servers/3, add_server/4, send_message/2, connect_server/2]).
+-export([start/1, add_remote/1, get_servers/3, add_server/4, send_message/2, connect_server/2, disconnect/1]).
  
 start(Client) ->
     Pid = spawn(fun() -> loop() end),
@@ -17,6 +17,8 @@ get_servers(Client, Router, Remote) -> Client ! {servers, Router, Remote}.
 connect_server(Client, Server) -> Client ! {connect_server, Server}.
 
 send_message(Client, Message) -> Client ! {send, Message}.
+
+disconnect(Client) -> Client ! disconnect.
  
 loop() ->
     receive
