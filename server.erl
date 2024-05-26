@@ -25,7 +25,7 @@ startWithMonitor(ServerName, Monitor) ->
 startWithMonitor(ServerName, Monitor, FullRouter) ->
     Pid = defaultStart(ServerName, get_process_alias(Monitor), []),
     io:format("SERVER::~p@~p:: Spawning server with monitor ~p.~n", [ServerName, Pid, get_process_alias(Monitor)]),
-    Pid ! {monitor, Monitor},
+    Pid ! {monitor, Monitor, FullRouter},
     Pid.
 
 

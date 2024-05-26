@@ -49,3 +49,4 @@ start_server(ServerName) -> startWithMonitor(ServerName, self()).
 % - Support router connected response (just like server).
 % - Case: connect to router, restart router, connect again -> fail
 % - Add full router when restarting from router 
+% - Need to do the refreshServer differently
