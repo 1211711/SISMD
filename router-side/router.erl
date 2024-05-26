@@ -6,7 +6,7 @@
 -export([start/2, startWithMonitor/4]).
 
 defaultStart(Router, MonitorName, Servers, ServerMonitors) ->
-    compile:file(helper),
+    compile:file('../helper'),
     Pid = spawn(fun() -> init(Servers, ServerMonitors, MonitorName) end),
     register(Router, Pid),
     Pid.

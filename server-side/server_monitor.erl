@@ -20,12 +20,12 @@ startMonitor(Server, MonitorName, FullRouter, Clients) ->
     Pid.
 
 init(Server, Clients) ->
-    compile:file(helper),
+    compile:file('../helper'),
     process_flag(trap_exit, true),
     loop(Server, get_process_alias(Server), Clients).
 
 init(Server, FullRouter, Clients) ->
-    compile:file(helper),
+    compile:file('../helper'),
     process_flag(trap_exit, true),
     loop(Server, get_process_alias(Server), FullRouter, Clients).
 

@@ -6,7 +6,7 @@
 -export([start_monitor/4]).
 
 start_monitor(Router, MonitorName, Servers, ServerMonitors) -> 
-    compile:file(helper),  
+    compile:file('../helper'),
     Pid = spawn(fun() -> init(Router, Servers, ServerMonitors) end),
     io:format("ROUTER MONITOR::~p@~p:: Monitor requested for ~p@~p~n", [MonitorName, Pid, get_process_alias(Router), Router]),
     register(MonitorName, Pid),

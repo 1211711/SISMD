@@ -5,6 +5,7 @@
 -export([start/1, add_remote/1, get_servers/3, add_server/4, send_message/2, connect_server/2, disconnect/1]).
  
 start(Client) ->
+    compile:file('../helper'),
     Pid = spawn(fun() -> loop() end),
     register(Client, Pid).
  

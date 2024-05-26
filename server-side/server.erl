@@ -6,7 +6,7 @@
 -export([start/2, connectToRouter/3, startWithMonitor/3, startWithMonitor/4]).
 
 defaultStart(Server, MonitorName, Clients) ->
-    compile:file(helper),
+    compile:file('../helper'),
     compile:file(server_monitor),  
     Pid = spawn(fun() -> init(Clients, MonitorName) end),
     io:format("SERVER::~p@~p:: Server starting with clients: ~p.~n", [Server, Pid, Clients]),
