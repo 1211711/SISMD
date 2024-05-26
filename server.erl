@@ -1,60 +1,62 @@
 -module(server).
 
--import(server_monitor,[startMonitor/2,startMonitor/3]).
+-import(server_monitor,[startMonitor/3,startMonitor/4]).
 -import(helper,[get_process_alias/1]).
 
--export([start/2, connectToRouter/3, startWithMonitor/2, startWithMonitor/3]).
+-export([start/2, connectToRouter/3, startWithMonitor/3, startWithMonitor/4]).
 
-defaultStart(Server, MonitorName, Servers) ->
+defaultStart(Server, MonitorName, Clients) ->
     compile:file(helper),
     compile:file(server_monitor),  
-    Pid = spawn(fun() -> init(Servers, MonitorName) end),
+    Pid = spawn(fun() -> init(Clients, MonitorName) end),
+    io:format("SERVER::~p@~p:: Server starting with clients: ~p.~n", [Server, Pid, Clients]),
     register(Server, Pid),
     Pid.
 
-defaultStart(Server, MonitorName, Servers, FullRouter) ->
+defaultStart(Server, MonitorName, Clients, FullRouter) ->
     compile:file(helper),
     compile:file(server_monitor),  
-    Pid = spawn(fun() -> init(Servers, MonitorName, FullRouter) end),
+    Pid = spawn(fun() -> init(Clients, MonitorName, FullRouter) end),
+    io:format("SERVER::~p@~p:: Server starting with clients: ~p.~n", [Server, Pid, Clients]),
     register(Server, Pid),
     Pid.
 
 start(ServerName, MonitorName) ->
     Pid = defaultStart(ServerName, MonitorName, []),
-    enableMonitoring(Pid, MonitorName).
+    enableMonitoring(Pid, MonitorName, []).
 
-startWithMonitor(ServerName, Monitor) ->
-    Pid = defaultStart(ServerName, get_process_alias(Monitor), []),
+startWithMonitor(ServerName, Monitor, Clients) ->
+    Pid = defaultStart(ServerName, get_process_alias(Monitor), Clients),
     io:format("SERVER::~p@~p:: Spawning server with monitor ~p.~n", [ServerName, Pid, get_process_alias(Monitor)]),
     Pid ! {monitor, Monitor},
     Pid.
 
-startWithMonitor(ServerName, Monitor, FullRouter) ->
-    Pid = defaultStart(ServerName, get_process_alias(Monitor), [], FullRouter),
+startWithMonitor(ServerName, Monitor, FullRouter, Clients) ->
+    Pid = defaultStart(ServerName, get_process_alias(Monitor), Clients, FullRouter),
     io:format("SERVER::~p@~p:: Spawning server with monitor ~p.~n", [ServerName, Pid, get_process_alias(Monitor)]),
     Pid ! {monitor, Monitor},
     Pid.
 
 
-enableMonitoring(Server, MonitorName) -> 
-    MonitorPid = createMonitor(Server, MonitorName),
+enableMonitoring(Server, MonitorName, Clients) -> 
+    MonitorPid = createMonitor(Server, MonitorName, Clients),
     Server ! {monitor, MonitorPid},
     MonitorPid.
 
-enableMonitoring(Server, MonitorName, FullRouter) -> 
-    MonitorPid = createMonitor(Server, MonitorName, FullRouter),
+enableMonitoring(Server, MonitorName, FullRouter, Clients) -> 
+    MonitorPid = createMonitor(Server, MonitorName, FullRouter, Clients),
     Server ! {monitor, MonitorPid},
     MonitorPid.
 
-createMonitor(Server, MonitorName) -> 
+createMonitor(Server, MonitorName, Clients) -> 
     compile:file(server_monitor),
     io:format("SERVER:~p@~p:: Monitor starting: ~p~n", [get_process_alias(Server), Server, MonitorName]),
-    startMonitor(Server, MonitorName).
+    startMonitor(Server, MonitorName, Clients).
 
-createMonitor(Server, MonitorName, FullRouter) -> 
+createMonitor(Server, MonitorName, FullRouter, Clients) -> 
     compile:file(server_monitor),
     io:format("SERVER:~p@~p:: Monitor starting: ~p~n", [get_process_alias(Server), Server, MonitorName]),
-    startMonitor(Server, MonitorName, FullRouter).
+    startMonitor(Server, MonitorName, FullRouter, Clients).
 
 init(Clients, MonitorName) ->
     process_flag(trap_exit, true),
@@ -85,6 +87,7 @@ loop(Clients, MonitorName, FullRouter) ->
             io:format("SERVER::~p@~p:: Client ~p connected.~n", [get_process_alias(self()), self(), Client]),
             NewClients= [Client | lists:delete(Client, Clients)],
             io:format("SERVER::~p@~p:: Clients connected:~p~n", [get_process_alias(self()), self(), NewClients]),
+            whereis(MonitorName) ! {add_client, Client},
             loop(NewClients, MonitorName, FullRouter);
         % Receive message from client and broadcast to all clients - WORKING ✅
         {broadcast, From, Message} ->
@@ -98,7 +101,7 @@ loop(Clients, MonitorName, FullRouter) ->
         % Monitor messages
         revive_monitor ->
             io:format("SERVER::~p@~p:: Revive monitor request. Router: ~p~n", [get_process_alias(self()), self(), FullRouter]),
-            enableMonitoring(self(), MonitorName, FullRouter),
+            enableMonitoring(self(), MonitorName, FullRouter, Clients),
             loop(Clients, MonitorName, FullRouter);
         % Stop the server
         stop ->
