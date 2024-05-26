@@ -23,6 +23,7 @@ startWithMonitor(Router, Monitor, Servers) ->
 
 init(Servers, ServerMonitors, MonitorName) ->
     process_flag(trap_exit, true),
+    io:format("ROUTER::~p@~p:: Router started with servers ~p.~n", [get_process_alias(self()), self(), Servers]),
     loop(Servers, ServerMonitors, MonitorName).
 
 startMonitor(Router, MonitorName, Servers) ->  
@@ -42,7 +43,7 @@ loop(Servers, ServerMonitors, MonitorName) ->
         {add_server, ServerName, Server} ->
             add_server(ServerName, Server),
             NewServers = [{ServerName, Server} | lists:keydelete(ServerName, 1, Servers)],
-            io:format("SERVERS: ~p~n", [NewServers]),
+            whereis(MonitorName) ! {add_server, ServerName, Server},
             loop(NewServers, ServerMonitors, MonitorName);
         % Add server monitor to the routing
         {add_server_monitor, ServerName, ServerMonitor} ->
@@ -50,6 +51,7 @@ loop(Servers, ServerMonitors, MonitorName) ->
             erlang:monitor(process, ServerMonitor),
             NewServerMonitors = [{ServerName, ServerMonitor} | lists:keydelete(ServerName, 1, ServerMonitors)],
             io:format("SERVER MONITORS: ~p~n", [NewServerMonitors]),
+            %whereis(MonitorName) ! {add_server_monitor, ServerName, OldServer, NewServer},
             loop(Servers, NewServerMonitors, MonitorName);
         % Monitor server monitor
         {'DOWN', _, process, DownServerMonitor, Reason} ->
@@ -81,6 +83,7 @@ loop(Servers, ServerMonitors, MonitorName) ->
             io:format("ROUTER::~p@~p:: Refresh server ~p from ~p to ~p~n", [get_process_alias(self()), self(), ServerName, OldServer, NewServer]),
             NewServers = lists:keyreplace(ServerName, 1, Servers, {ServerName, NewServer}),
             io:format("ROUTER::~p@~p:: SERVERS: ~p~n", [get_process_alias(self()), self(), NewServers]),
+            whereis(MonitorName) ! {refreshServer, ServerName, OldServer, NewServer},
             loop(NewServers, ServerMonitors, MonitorName);
         % Stop the router
         stop ->
