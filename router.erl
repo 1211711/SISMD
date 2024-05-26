@@ -51,13 +51,6 @@ loop(Servers, MonitorName) ->
             ServerId = element(2, Server),
             ServerId ! {connect, Client},
             loop(Servers, MonitorName);
-        % Clients sends message to server - WORKING ✅
-        {deprecate, ServerName, Client, Message} ->
-            Server = lists:keyfind(ServerName, 1, Servers),
-            io:format("Client ~p sending message: ~p to ~p~n", [Client, Message, Server]),
-            ServerId = element(2, Server),
-            ServerId ! {Client, Message},
-            loop(Servers, MonitorName);
         % Monitor messages
         {monitor, Monitor} ->
             request_to_monitor(Monitor),
