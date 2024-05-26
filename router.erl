@@ -1,22 +1,22 @@
 -module(router).
 
--import(router_monitor,[start_monitor/3]).
+-import(router_monitor,[start_monitor/4]).
 -import(helper,[get_process_alias/1]).
 
--export([start/2, startWithMonitor/3]).
+-export([start/2, startWithMonitor/4]).
 
-defaultStart(Router, MonitorName, Servers) ->
+defaultStart(Router, MonitorName, Servers, ServerMonitors) ->
     compile:file(helper),
-    Pid = spawn(fun() -> init(Servers, [], MonitorName) end),
+    Pid = spawn(fun() -> init(Servers, ServerMonitors, MonitorName) end),
     register(Router, Pid),
     Pid.
 
 start(Router, MonitorName) ->
-    Pid = defaultStart(Router, MonitorName, []),
-    startMonitor(Pid, MonitorName, []).
+    Pid = defaultStart(Router, MonitorName, [], []),
+    startMonitor(Pid, MonitorName, [], []).
 
-startWithMonitor(Router, Monitor, Servers) ->
-    Pid = defaultStart(Router, get_process_alias(Monitor), Servers),
+startWithMonitor(Router, Monitor, Servers, ServerMonitors) ->
+    Pid = defaultStart(Router, get_process_alias(Monitor), Servers, ServerMonitors),
     io:format("ROUTER::~p@~p:: Spawning router with monitor ~p.~n", [Router, Pid, get_process_alias(Monitor)]),
     Router ! {monitor, Monitor},
     Pid.
@@ -24,12 +24,13 @@ startWithMonitor(Router, Monitor, Servers) ->
 init(Servers, ServerMonitors, MonitorName) ->
     process_flag(trap_exit, true),
     io:format("ROUTER::~p@~p:: Router started with servers ~p.~n", [get_process_alias(self()), self(), Servers]),
+    io:format("ROUTER::~p@~p:: Router started with server monitors ~p.~n", [get_process_alias(self()), self(), ServerMonitors]),
     loop(Servers, ServerMonitors, MonitorName).
 
-startMonitor(Router, MonitorName, Servers) ->  
+startMonitor(Router, MonitorName, Servers, ServerMonitors) ->  
     compile:file(router_monitor),  
     io:format("ROUTER:~p@~p:: Monitor starting: ~p~n", [get_process_alias(Router), Router, MonitorName]),
-    MonitorPid = start_monitor(Router, MonitorName, Servers),
+    MonitorPid = start_monitor(Router, MonitorName, Servers, ServerMonitors),
     Router ! {monitor, MonitorPid},
     MonitorPid.
 
@@ -51,7 +52,7 @@ loop(Servers, ServerMonitors, MonitorName) ->
             erlang:monitor(process, ServerMonitor),
             NewServerMonitors = [{ServerName, ServerMonitor} | lists:keydelete(ServerName, 1, ServerMonitors)],
             io:format("SERVER MONITORS: ~p~n", [NewServerMonitors]),
-            %whereis(MonitorName) ! {add_server_monitor, ServerName, OldServer, NewServer},
+            whereis(MonitorName) ! {add_server_monitor, ServerName, ServerMonitor},
             loop(Servers, NewServerMonitors, MonitorName);
         % Monitor server monitor
         {'DOWN', _, process, DownServerMonitor, Reason} ->
@@ -76,7 +77,7 @@ loop(Servers, ServerMonitors, MonitorName) ->
         % Restart Router Monitor when it goes down
         {'EXIT', Monitor, Reason} ->
             io:format("ROUTER::~p@~p::EXIT:: Router ~p is down due to: ~p~n", [get_process_alias(self()), self(), Monitor, Reason]),
-            NewMonitor = startMonitor(self(), MonitorName, Servers),  
+            NewMonitor = startMonitor(self(), MonitorName, Servers, ServerMonitors),  
             loop(Servers, ServerMonitors, get_process_alias(NewMonitor));
         % Stop the server
         {refreshServer, ServerName, OldServer, NewServer} ->
