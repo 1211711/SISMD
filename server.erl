@@ -83,7 +83,9 @@ loop(Clients, MonitorName, FullRouter) ->
         % Connect client to server - WORKING ✅
         {connect, Client} ->
             io:format("SERVER::~p@~p:: Client ~p connected.~n", [get_process_alias(self()), self(), Client]),
-            loop([Client | Clients], MonitorName, FullRouter);
+            NewClients= [Client | lists:delete(Client, Clients)],
+            io:format("SERVER::~p@~p:: Clients connected:~p~n", [get_process_alias(self()), self(), NewClients]),
+            loop(NewClients, MonitorName, FullRouter);
         % Receive message from client and broadcast to all clients - WORKING ✅
         {broadcast, From, Message} ->
             io:format("SERVER::~p@~p:: Received message ~p from ~p.~n", [get_process_alias(self()), self(), Message, From]),
