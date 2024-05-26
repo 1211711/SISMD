@@ -47,15 +47,15 @@ loop(Clients, MonitorName) ->
             loop(Clients, MonitorName);
         % Receive sucess message from the router connection - WORKING ✅
         {connected, Router} ->
-            io:format("Router connected: ~p~n", [Router]),
+            io:format("SERVER::~p@~p:: Router ~p connected.~n", [get_process_alias(self()), self(), Router]),
             loop(Clients, MonitorName);
         % Connect client to server - WORKING ✅
         {connect, Client} ->
-            io:format("Client connected: ~p~n", [Client]),
+            io:format("SERVER::~p@~p:: Client ~p connected.~n", [get_process_alias(self()), self(), Client]),
             loop([Client | Clients], MonitorName);
         % Receive message from client and broadcast to all clients - WORKING ✅
         {broadcast, From, Message} ->
-            io:format("Server received message: ~p From: ~p ~n", [Message, From]),
+            io:format("SERVER::~p@~p:: Received message ~p from ~p.~n", [get_process_alias(self()), self(), Message, From]),
             lists:foreach(fun(Client) -> Client ! {From, {server, Message}} end, lists:delete(From, Clients)),
             loop(Clients, MonitorName);
         % Monitor messages
@@ -71,3 +71,6 @@ request_to_monitor(Monitor) ->
     io:format("SERVER::~p@~p:: Request to be monitored by ~p~n", [get_process_alias(self()), self(), Monitor]),
     Monitor ! {monitor, self()},
     io:format("SERVER::~p@~p:: Monitor started on ~p~n", [get_process_alias(self()), self(), get_process_alias(Monitor)]).
+
+% - Validate if client is connected to the server
+% - Feedback to client when connecting
