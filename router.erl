@@ -58,8 +58,7 @@ loop(Servers, ServerMonitors, MonitorName) ->
             io:format("SM:: ~p.~n", [ServerName]),
             Server = element(2, lists:keyfind(ServerName, 1, Servers)),
             io:format("SM:: ~p.~n", [Server]),
-            io:format("ROUTER::~p@~p::DOWN:: Reviving server monitor ~p related to server ~p.~n", [get_process_alias(self()), self(), DownServerMonitor, ServerName]),
-            io:format("ROUTER::~p@~p::DOWN:: Server ~p.~n", [get_process_alias(self()), self(), Server]),
+            io:format("ROUTER::~p@~p::DOWN:: Reviving server monitor ~p related to server ~p@~p.~n", [get_process_alias(self()), self(), DownServerMonitor, ServerName, Server]),
             Server ! revive_monitor,
             loop(Servers, ServerMonitors, MonitorName);
         % Connect client to server - WORKING ✅
