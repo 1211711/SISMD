@@ -51,7 +51,7 @@ loop(Servers, ServerMonitors, MonitorName) ->
             add_server(ServerName, ServerMonitor),
             erlang:monitor(process, ServerMonitor),
             NewServerMonitors = [{ServerName, ServerMonitor} | lists:keydelete(ServerName, 1, ServerMonitors)],
-            io:format("SERVER MONITORS: ~p~n", [NewServerMonitors]),
+            io:format("ROUTER::~p@~p:: Server Monitor ~p@~p added. Server Monitors available: ~p~n", [get_process_alias(self()), self(), ServerName, ServerMonitor, NewServerMonitors]),
             whereis(MonitorName) ! {add_server_monitor, ServerName, ServerMonitor},
             loop(Servers, NewServerMonitors, MonitorName);
         % Monitor server monitor
@@ -100,8 +100,3 @@ request_to_monitor(Monitor) ->
     io:format("ROUTER::~p@~p:: Request to be monitored by ~p~n", [get_process_alias(self()), self(), Monitor]),
     Monitor ! {monitor, self()},
     io:format("ROUTER::~p@~p:: Monitor started on ~p~n", [get_process_alias(self()), self(), get_process_alias(Monitor)]).
-
-% TODO:
-% - When a client goes down remove from server list
-% - Need to persist server monitors and servers ⚠️
-% - remove database

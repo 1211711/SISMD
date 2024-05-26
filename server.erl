@@ -44,19 +44,14 @@ enableMonitoring(Server, MonitorName, Clients) ->
     MonitorPid.
 
 enableMonitoring(Server, MonitorName, FullRouter, Clients) -> 
-    MonitorPid = createMonitor(Server, MonitorName, FullRouter, Clients),
-    Server ! {monitor, MonitorPid},
+    MonitorPid = createMonitor(Server, MonitorName, Clients),
+    Server ! {monitor, MonitorPid, FullRouter},
     MonitorPid.
 
 createMonitor(Server, MonitorName, Clients) -> 
     compile:file(server_monitor),
     io:format("SERVER:~p@~p:: Monitor starting: ~p~n", [get_process_alias(Server), Server, MonitorName]),
     startMonitor(Server, MonitorName, Clients).
-
-createMonitor(Server, MonitorName, FullRouter, Clients) -> 
-    compile:file(server_monitor),
-    io:format("SERVER:~p@~p:: Monitor starting: ~p~n", [get_process_alias(Server), Server, MonitorName]),
-    startMonitor(Server, MonitorName, FullRouter, Clients).
 
 init(Clients, MonitorName) ->
     process_flag(trap_exit, true),
@@ -99,6 +94,10 @@ loop(Clients, MonitorName, FullRouter) ->
             request_to_monitor(Monitor),
             loop(Clients, MonitorName, FullRouter);
         % Monitor messages
+        {monitor, Monitor, FullRouter} ->
+            request_to_monitor(Monitor, FullRouter),
+            loop(Clients, MonitorName, FullRouter);
+        % Monitor messages
         revive_monitor ->
             io:format("SERVER::~p@~p:: Revive monitor request. Router: ~p~n", [get_process_alias(self()), self(), FullRouter]),
             enableMonitoring(self(), MonitorName, FullRouter, Clients),
@@ -134,6 +133,11 @@ loop(Clients, MonitorName) ->
 request_to_monitor(Monitor) ->
     io:format("SERVER::~p@~p:: Request to be monitored by ~p~n", [get_process_alias(self()), self(), Monitor]),
     Monitor ! {monitor, self()},
+    io:format("SERVER::~p@~p:: Monitor started on ~p~n", [get_process_alias(self()), self(), get_process_alias(Monitor)]).
+
+request_to_monitor(Monitor, FullRouter) ->
+    io:format("SERVER::~p@~p:: Request to be monitored by ~p~n", [get_process_alias(self()), self(), Monitor]),
+    Monitor ! {monitor, self(), FullRouter},
     io:format("SERVER::~p@~p:: Monitor started on ~p~n", [get_process_alias(self()), self(), get_process_alias(Monitor)]).
 
 % - Feedback to client when connecting

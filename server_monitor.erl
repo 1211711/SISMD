@@ -9,12 +9,14 @@ startMonitor(Server, MonitorName, Clients) ->
     Pid = spawn(fun() -> init(Server, Clients) end),
     io:format("SERVER MONITOR::~p@~p:: Monitor requested for ~p@~p~n", [MonitorName, Pid, get_process_alias(Server), Server]),
     register(MonitorName, Pid),
+    io:format("AQUI~n"),
     Pid.
 
 startMonitor(Server, MonitorName, FullRouter, Clients) -> 
     Pid = spawn(fun() -> init(Server, FullRouter, Clients) end),
     io:format("SERVER MONITOR::~p@~p:: Monitor requested for ~p@~p~n", [MonitorName, Pid, get_process_alias(Server), Server]),
     register(MonitorName, Pid),
+    io:format("AQUI~n"),
     Pid.
 
 init(Server, Clients) ->
@@ -33,7 +35,6 @@ loop(Server, ServerName, FullRouter, Clients) ->
         {monitor, Server} ->
             io:format("SERVER MONITOR::~p@~p:: Server ~p@~p being monitored.~n", [get_process_alias(self()), self(), get_process_alias(Server), Server]),
             link(Server),
-            FullRouter ! {add_server_monitor, get_process_alias(Server), self()},
             loop(Server, get_process_alias(Server), FullRouter, Clients);
         % Restart Router when it goes down
         {'EXIT', DownServer, Reason} ->
