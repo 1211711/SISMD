@@ -31,6 +31,10 @@ loop() ->
             net_adm:ping(Remote),
             {Router, Remote} ! {connect, self(), ServerName},
             loop();
+        % Receive messages from the server
+        {Server, {server, Message}} ->
+            io:format("CLIENT::~p@~p:: Received message: ~p from ~p~n", [get_process_alias(self()), self(), Message, Server]),
+            loop();
         % Ask router for servers - WORKING ✅
         {servers, Router, Remote} ->
             add_remote(Remote),

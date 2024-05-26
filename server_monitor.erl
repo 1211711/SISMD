@@ -31,7 +31,6 @@ loop(Server, ServerName, FullRouter) ->
         {'EXIT', Server, Reason} ->
             io:format("SERVER MONITOR::~p@~p::EXIT:: Server ~p@~p is down due to: ~p~n", [get_process_alias(self()), self(), ServerName, Server, Reason]),
             NewServer = start_server(ServerName),
-            io:format("FULL ROUTING ~p~n", [FullRouter]),
             FullRouter ! {refreshServer, get_process_alias(NewServer), Server, NewServer},
             loop(NewServer);
         % Add Router
