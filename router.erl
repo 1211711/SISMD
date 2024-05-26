@@ -66,7 +66,16 @@ loop(Servers, MonitorName) ->
         {'EXIT', Monitor, Reason} ->
             io:format("ROUTER::~p@~p::EXIT:: Router ~p is down due to: ~p~n", [get_process_alias(self()), self(), Monitor, Reason]),
             NewMonitor = startMonitor(self(), MonitorName),  
-            loop(Servers, get_process_alias(NewMonitor))
+            loop(Servers, get_process_alias(NewMonitor));
+        % Stop the server
+        {refreshServer, ServerName, OldServer, NewServer} ->
+            io:format("ROUTER::~p@~p:: Refresh server ~p from ~p to ~p~n", [get_process_alias(self()), self(), ServerName, OldServer, NewServer]),
+            NewServers = lists:keyreplace(ServerName, 1, Servers, {ServerName, NewServer}),
+            io:format("ROUTER::~p@~p:: SERVERS: ~p~n", [get_process_alias(self()), self(), NewServers]),
+            loop(NewServers, MonitorName);
+        % Stop the router
+        stop ->
+            io:format("Router stopping~n")
     end.
 
 add_server(ServerName, Server) ->

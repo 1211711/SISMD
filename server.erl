@@ -3,7 +3,7 @@
 -import(server_monitor,[startMonitor/2]).
 -import(helper,[get_process_alias/1]).
 
--export([start/2, connectToRouter/4, startWithMonitor/2]).
+-export([start/2, connectToRouter/3, startWithMonitor/2]).
 
 defaultStart(Server, MonitorName, Servers) ->
     compile:file(helper),
@@ -34,15 +34,15 @@ init(Clients, MonitorName) ->
     loop(Clients, MonitorName).
 
 % Connect to the respective router
-connectToRouter(Server, Name, Router, Remote) -> Server ! {connect_to_router, Name, Router, Remote}.
+connectToRouter(Server, Router, Remote) -> Server ! {connect_to_router, Router, Remote}.
  
 loop(Clients, MonitorName) ->
     receive
         % Connect to router - WORKING ✅
-        {connect_to_router, Name, Router, Remote} ->
+        {connect_to_router, Router, Remote} ->
             net_adm:ping(Remote),
-            io:format("Server::~p@~p:: Trying to connect to ~p~n", [get_process_alias(self()), self(), Router]),
-            {Router, Remote} ! {add_server, Name, self()},
+            io:format("SERVER::~p@~p:: Trying to connect to ~p~n", [get_process_alias(self()), self(), Router]),
+            {Router, Remote} ! {add_server, get_process_alias(self()), self()},
             whereis(MonitorName) ! {Router, Remote},
             loop(Clients, MonitorName);
         % Receive sucess message from the router connection - WORKING ✅
